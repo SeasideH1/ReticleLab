@@ -1,0 +1,30 @@
+name: Checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build and core smoke (no signing)
+        shell: pwsh
+        run: ./native/scripts/build.ps1 -NoPackage
+      - run: node --test tests/model.test.cjs tests/overlays.test.cjs
+      - run: python tests/check_assets.py
+      - run: python native/scripts/setup_gsi_smoke.py
+      - run: python native/scripts/gsi_latency_smoke.py
+      - name: Installer confirmation smoke (no installation)
+        shell: powershell
+        run: ./native/scripts/installer_prompt_smoke.ps1
+      - run: python native/scripts/audit.py
+      - run: python native/scripts/public_audit.py --staged

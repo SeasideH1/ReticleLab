@@ -1,0 +1,22 @@
+[
+  {
+    "name": "notosanssc-regular.ttf",
+    "source": "CS2 game/csgo/panorama/fonts/notosanssc-regular.ttf",
+    "sha256": "8c37936063c7c8ab747a939e13833894f9edc80dd41b98874ca8f3938a33c32f"
+  },
+  {
+    "name": "notosanssc-bold.ttf",
+    "source": "CS2 game/csgo/panorama/fonts/notosanssc-bold.ttf",
+    "sha256": "f22dd24a0bc7af850134c44dc2ba3a5cc08d1e59915aa02461acaa6fdcc479dd"
+  },
+  {
+    "name": "notosans-regular.ttf",
+    "source": "CS2 game/csgo/panorama/fonts/notosans-regular.ttf",
+    "sha256": "a52fdd375fb885e6ac21471b34e26e5cb6e58f1fa944519bff08d4400605bfed"
+  },
+  {
+    "name": "notosans-bold.ttf",
+    "source": "CS2 game/csgo/panorama/fonts/notosans-bold.ttf",
+    "sha256": "6c9841ae63e266b77ee79820d62095a244d2e76d638b8a45ba3cb2c23f3e1932"
+  }
+]

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Reticle Lab — CS2 控件动效实验室</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./index.html"><span class="brand-mark">⌖</span> RETICLE<span class="brand-light">LAB</span><span class="edition">CS2</span></a>
+    <div class="top-meta"><span class="status-dot"></span> 本地交互原型 <span class="separator">/</span> <span>DESIGN STUDY 001</span></div>
+    <button id="export" class="quiet-button">导出当前参数 <span aria-hidden="true">↗</span></button>
+  </header>
+  <main>
+    <div class="intro"><div><div class="eyebrow">FEEDBACK, FRAME BY FRAME</div><h1>让每一次命中，都有回应<span>。</span></h1><p>四个独立控件。一处调校细节。点击触发，或慢下来逐帧观察。</p></div><span class="prototype-label">交互演示 <b>v0.5</b></span></div>
+    <nav class="tabs" aria-label="演示控件">
+      <button data-tab="crosshair" aria-pressed="true"><span>01</span> 准心反馈 <small>COD16 LIKE</small></button>
+      <button data-tab="kill" aria-pressed="false"><span>02</span> 击杀提示 <small>OW LIKE</small></button>
+      <button data-tab="stats" aria-pressed="false"><span>03</span> 实时统计 <small>LIVE STATS</small></button>
+      <button data-tab="input" aria-pressed="false"><span>04</span> 键鼠显示 <small>INPUT OVERLAY</small></button>
+      <button data-tab="all" aria-pressed="false" class="combined-tab">组合预览 <span>↗</span></button>
+    </nav>
+    <div class="workspace">
+      <section class="preview-panel" aria-label="控件预览">
+        <div class="preview-top"><div><span class="status-dot"></span><b id="preview-title">准心反馈</b><span class="preview-subtitle">LIVE PREVIEW</span></div><div class="preview-tools"><label class="check"><input type="checkbox" id="guides"> 中心辅助线</label><label class="sr-only" for="background">预览背景</label><select id="background"><option value="scene">沙色训练场</option><option value="dark">深色背景</option><option value="light">浅色背景</option></select><button id="fullscreen" title="进入或退出全屏预览">⛶</button></div></div>
+        <div id="stage" class="stage" data-background="scene" tabindex="0" aria-label="预览画布；选择准心或击杀提示时，方向键每次移动 1 预览像素">
+          <svg class="scene" viewBox="0 0 1200 720" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#b1c6c7"/><stop offset="1" stop-color="#e3dbbe"/></linearGradient><linearGradient id="ground" x2="0" y2="1"><stop stop-color="#b1a28a"/><stop offset="1" stop-color="#68645b"/></linearGradient><linearGradient id="wall" x2="1" y2=".3"><stop stop-color="#d1bd94"/><stop offset="1" stop-color="#ad987b"/></linearGradient><pattern id="brick" width="100" height="45" patternUnits="userSpaceOnUse"><path d="M0 0H100M0 45H100M50 0V45" stroke="#64543c" stroke-opacity=".13" fill="none"/></pattern></defs>
+            <path fill="url(#sky)" d="M0 0H1200V720H0z"/><path fill="#abbaa9" opacity=".3" d="M0 280L300 215 570 270 850 200 1200 275V450H0z"/>
+            <path fill="url(#ground)" d="M0 390H1200V720H0z"/><path fill="#b6a17e" d="M0 90L305 130V460L0 630z"/><path fill="url(#wall)" d="M0 90L305 130V410L0 536z"/>
+            <path fill="#948269" d="M305 130L365 107V398L305 410z"/><path fill="#c8b08b" d="M348 225H690V414H348z"/>
+            <path fill="#91856c" d="M455 414V312A65 65 0 0 1 130 0V414z"/><path fill="#343e3b" d="M468 414V320A52 52 0 0 1 104 0V414z"/>
+            <path fill="#b19d7e" d="M690 126L1200 25V552L690 410z"/><path fill="url(#brick)" d="M690 126L1200 25V552L690 410z"/><path fill="#d0bb99" d="M690 126L1200 25V63L690 157z"/>
+            <path fill="#8f8069" d="M778 175L940 149V324L778 326z"/><path fill="#46504b" d="M790 190L926 169V312L790 315z"/><path stroke="#9f9b83" stroke-width="8" d="M812 185V314M857 178V314M902 171V313"/>
+            <path fill="#9b8060" d="M65 341L219 308V452L65 507z"/><path stroke="#77664d" stroke-width="8" d="M65 353L215 322M68 497L218 445M89 346V491M199 320V454"/>
+            <path fill="#6a7965" d="M800 406L919 424V504L800 478z"/><path fill="#89927a" d="M800 406L857 391 973 410 919 424z"/><path fill="#586351" d="M919 424L973 410V483L919 504z"/>
+            <path stroke="#c2b7a0" stroke-width="2" opacity=".4" d="M510 420L349 720M663 417L846 720M0 600H1200M195 493H1010"/>
+            <path d="M291 159Q570 221 814 109" stroke="#535c53" stroke-width="2" fill="none"/><path d="M700 80V224" stroke="#8b8775" stroke-width="5"/>
+            <text x="380" y="295" fill="#8e5145" font-size="34" font-family="sans-serif" opacity=".6">A →</text>
+          </svg>
+          <div class="scene-vignette"></div><div class="stage-hud"><span>TRAINING GROUND <i> / </i> 01</span><span id="stage-dimensions"></span></div>
+          <div class="guides" aria-hidden="true"></div>
+          <div id="crosshair-anchor" class="crosshair-anchor">
+            <svg id="base-crosshair" width="100" height="100" viewBox="-50 -50 100 100" aria-label="基础准心"><path id="crosshair-path" fill="none"/><circle id="crosshair-dot" r="1"/></svg>
+            <div id="effect-layer"></div>
+          </div>
+          <div id="feed-anchor" class="feed-anchor"><div id="kill-feed"></div></div>
+          <div id="stats-anchor" class="stats-anchor"><div id="stats-canvas" class="stats-canvas" aria-label="实时统计布局"></div></div>
+          <div id="input-anchor" class="input-anchor"><div id="input-canvas" class="input-canvas" aria-label="键鼠显示布局"></div></div>
+          <div class="stage-bottom"><span class="simulation-badge">模拟事件</span><span id="stage-hint">按 H 命中 · J 爆头命中 · K 击杀 · L 爆头击杀</span></div>
+        </div>
+        <div id="triggers" class="trigger-bar"><span class="trigger-label">触发事件</span><button data-event="hit"><kbd>H</kbd> 命中</button><button data-event="headshot"><kbd>J</kbd> 爆头命中</button><button data-event="kill" class="accent-button"><kbd>K</kbd> 击杀</button><button data-event="headkill"><kbd>L</kbd> 爆头击杀</button><button data-event="burst">连击测试 <span>×5</span></button><button data-event="round" hidden><kbd>R</kbd> 新回合归零</button><button data-event="live" hidden>进入交战阶段</button><button data-event="death" hidden>模拟死亡</button><button data-event="assist" hidden>模拟助攻</button></div>
+        <div id="input-toolbar" class="trigger-bar" hidden><button id="input-demo">模拟键鼠输入</button><button id="input-focus">开始检测 · 点击画布后操作</button><span id="input-status" role="status">等待画布焦点</span></div>
+        <div class="transport" id="transport"><button id="replay" class="play-button" aria-label="重播当前动效">↻</button><button id="pause" aria-label="暂停动效">Ⅱ</button><div class="timeline-wrap"><div class="timeline-label"><span id="phase-label">就绪</span><span id="timeline-time">0 / 2400 ms</span></div><label class="sr-only" for="timeline">动效时间轴</label><input type="range" id="timeline" min="0" max="2400" value="0" step="1"></div><label class="sr-only" for="speed">播放速度</label><select id="speed"><option value="0.25">0.25× 慢放</option><option value="0.5">0.5× 慢放</option><option value="1" selected>1× 原速</option></select></div>
+        <div class="preview-footer"><span><b>TIP</b> 点击画布后用方向键微调，每次 1 px；数值为浏览器 CSS 像素。</span><button id="reset">重置本控件</button></div>
+      </section>
+      <aside class="inspector" aria-label="样式调节"><div class="inspector-header"><div><span class="eyebrow">FINE TUNE</span><h2 id="inspector-title">准心参数</h2></div><span class="sliders-icon">☷</span></div><div id="controls"></div><div class="inspector-note"><span>↳</span><p id="inspector-note">每次事件独立播放。连续命中时，新的标记叠加，不打断已有动效。</p></div></aside>
+    </div>
+    <section class="reference-section"><div class="reference-heading"><div><span class="eyebrow">MOTION REFERENCE</span><h2>一个矩形，完成击杀确认。</h2></div><p>原创示意帧展示入场与退场。时长可调，点击帧可对照相应阶段。</p></div><div id="references" class="reference-strip"></div><div class="motion-steps"><span><b>01</b> 白色矩形扩宽</span><span><b>02</b> 矩形展开 · 白到红</span><span><b>03</b> 内容显现 · 停留</span><span><b>04</b> 压缩收束</span><span><b>05</b> 矩形渐隐</span></div></section>
+    <details class="data-notes"><summary>演示数据与统计口径 <span>GSI 接入边界</span></summary><div><p>这是离线样式演示，未连接 CS2。击杀条展示使用的武器与造成伤害统计，示例为 AK-47 / 100；逐次命中与命中部位均为模拟数据。伤害统计的归属窗口待后续接入确定。动画时序可调；示意帧不是游戏截图。</p><p>HS Kill = 爆头击杀 ÷ 全部击杀；命中 HS = 头部命中次数 ÷ 全部命中次数。零分母显示 —。净增经济 = 回合结算后余额 − 该回合冻结阶段开始余额，包含购买支出。统计控件可选择一直显示，或仅在回合开始的准备阶段显示；模拟命中、击杀、死亡、助攻会实时更新；新回合清空本回合统计，保留累计伤害和金钱。模拟购买菜单打开时，统计卡整体不透明度降低，关闭后恢复。</p><p>正常参战 GSI 不能保证提供逐次命中、头部命中、可靠的击杀武器归属、即时伤害明细或购买菜单开关状态。实际接入前需要采集验证；“GSI 保守预览”将无法可靠提供的命中 HS 显示为 —。键鼠控件只读取获得焦点的预览内输入，不检测其它窗口；支持按键录入、点击高亮和有限时长的移动轨迹。方向键 1 px 为预览 CSS 像素，原生 Game Bar 需要另行换算 DPI 后的物理像素。</p></div></details>
+    <footer class="page-footer"><span>RETICLE LAB <i>/</i> FEEL THE FEEDBACK</span><span>HTML 原型 · 无游戏进程访问 · 无外部依赖</span></footer>
+  </main><div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="model.js"></script><script src="overlays.js"></script><script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+ xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+ xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+ xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+ xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+ xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+ IgnorableNamespaces="uap uap3 uap10 desktop rescap">
+ <Identity Name="ReticleLab.GameBar" Publisher="CN=ReticleLab.Local" Version="0.2.10.0" ProcessorArchitecture="x64" />
+ <Properties><DisplayName>Reticle Lab</DisplayName><PublisherDisplayName>Reticle Lab</PublisherDisplayName><Logo>Assets\StoreLogo.png</Logo></Properties>
+ <Dependencies>
+  <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  <PackageDependency Name="Microsoft.VCLibs.140.00" Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" MinVersion="14.0.0.0" />
+ </Dependencies>
+ <Resources><Resource Language="zh-CN" /><Resource Language="en-US" /></Resources>
+ <Applications>
+  <Application Id="App" Executable="ReticleWidget.exe" EntryPoint="Reticle.Widget.App" uap10:RuntimeBehavior="windowsApp" uap10:TrustLevel="appContainer">
+   <uap:VisualElements DisplayName="Reticle Lab" Description="Game Bar overlay and local GSI display" BackgroundColor="transparent" Square150x150Logo="Assets\Logo150.png" Square44x44Logo="Assets\Logo44.png" />
+   <Extensions>
+    <desktop:Extension Category="windows.fullTrustProcess" Executable="Bridge\ReticleBridge.exe"><desktop:FullTrustProcess><desktop:ParameterGroup GroupId="OpenConfigFolder" Parameters="--open-config" /></desktop:FullTrustProcess></desktop:Extension>
+    <uap3:Extension Category="windows.appExtension"><uap3:AppExtension Name="microsoft.gameBarUIExtension" Id="Crosshair" DisplayName="Reticle · 准心" Description="物理像素定位与反馈" PublicFolder="GameBar"><uap3:Properties><GameBarWidget Type="Standard"><HomeMenuVisible>true</HomeMenuVisible><PinningSupported>true</PinningSupported><SettingsSupported AppExtensionId="Settings" /><Window><AllowForegroundTransparency>true</AllowForegroundTransparency><Size><Width>400</Width><Height>400</Height></Size><ResizeSupported><Horizontal>true</Horizontal><Vertical>true</Vertical></ResizeSupported></Window></GameBarWidget></uap3:Properties></uap3:AppExtension></uap3:Extension>
+    <uap3:Extension Category="windows.appExtension"><uap3:AppExtension Name="microsoft.gameBarUIExtension" Id="Feed" DisplayName="Reticle · 击杀反馈" Description="本人击杀提示" PublicFolder="GameBar"><uap3:Properties><GameBarWidget Type="Standard"><HomeMenuVisible>true</HomeMenuVisible><PinningSupported>true</PinningSupported><SettingsSupported AppExtensionId="Settings" /><Window><AllowForegroundTransparency>true</AllowForegroundTransparency><Size><Width>660</Width><Height>360</Height></Size><ResizeSupported><Horizontal>true</Horizontal><Vertical>true</Vertical></ResizeSupported></Window></GameBarWidget></uap3:Properties></uap3:AppExtension></uap3:Extension>
+    <uap3:Extension Category="windows.appExtension"><uap3:AppExtension Name="microsoft.gameBarUIExtension" Id="Stats" DisplayName="Reticle · 实时统计" Description="本人统计与自由布局" PublicFolder="GameBar"><uap3:Properties><GameBarWidget Type="Standard"><HomeMenuVisible>true</HomeMenuVisible><PinningSupported>true</PinningSupported><SettingsSupported AppExtensionId="Settings" /><Window><AllowForegroundTransparency>true</AllowForegroundTransparency><Size><Width>390</Width><Height>300</Height></Size><ResizeSupported><Horizontal>true</Horizontal><Vertical>true</Vertical></ResizeSupported></Window></GameBarWidget></uap3:Properties></uap3:AppExtension></uap3:Extension>
+    <uap3:Extension Category="windows.appExtension"><uap3:AppExtension Name="microsoft.gameBarUIExtension" Id="Input" DisplayName="Reticle · 键鼠" Description="逐键样式与轨迹" PublicFolder="GameBar"><uap3:Properties><GameBarWidget Type="Standard"><HomeMenuVisible>true</HomeMenuVisible><PinningSupported>true</PinningSupported><SettingsSupported AppExtensionId="Settings" /><Window><AllowForegroundTransparency>true</AllowForegroundTransparency><Size><Width>440</Width><Height>210</Height></Size><ResizeSupported><Horizontal>true</Horizontal><Vertical>true</Vertical></ResizeSupported></Window></GameBarWidget></uap3:Properties></uap3:AppExtension></uap3:Extension>
+    <uap3:Extension Category="windows.appExtension"><uap3:AppExtension Name="microsoft.gameBarUIExtension" Id="Settings" DisplayName="Reticle · 设置" Description="外观与连接" PublicFolder="GameBar"><uap3:Properties><GameBarWidget Type="Settings"><Window><Size><Width>700</Width><Height>650</Height><MinWidth>400</MinWidth><MinHeight>500</MinHeight></Size><ResizeSupported><Horizontal>true</Horizontal><Vertical>true</Vertical></ResizeSupported></Window></GameBarWidget></uap3:Properties></uap3:AppExtension></uap3:Extension>
+   </Extensions>
+  </Application>
+ </Applications>
+ <Extensions>
+  <Extension Category="windows.activatableClass.inProcessServer"><InProcessServer><Path>Microsoft.Gaming.XboxGameBar.dll</Path>
+   <ActivatableClass ActivatableClassId="Microsoft.Gaming.XboxGameBar.XboxGameBarWidget" ThreadingModel="both" />
+   <ActivatableClass ActivatableClassId="Microsoft.Gaming.XboxGameBar.XboxGameBarWidgetActivatedEventArgs" ThreadingModel="both" />
+   <ActivatableClass ActivatableClassId="Microsoft.Gaming.XboxGameBar.Input.XboxGameBarHotkeyWatcher" ThreadingModel="both" />
+  </InProcessServer></Extension>
+ </Extensions>
+ <Capabilities><rescap:Capability Name="runFullTrust" /></Capabilities>
+</Package>

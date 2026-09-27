@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <Deterministic>true</Deterministic>
+    <!-- Avoid leaking the build machine's workspace path in portable symbols. -->
+    <PathMap>$(MSBuildThisFileDirectory)=/_/reticle-lab/</PathMap>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+</Project>

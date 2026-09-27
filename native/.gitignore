@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+packages/
+.packages/
+.download-cache/
+.dotnet/
+.httpcache/
+.signing/
+*.pfx
+*.p12
+NuGet.local.config
+artifacts/
+Widget/Fonts/Stratum2.ttf
+Widget/Bridge/
+*.user
