@@ -75,6 +75,8 @@ builder.WebHost.ConfigureKestrel(o => {
 });
 var app = builder.Build();
 var reducer = new GsiReducer();
+var fieldDiagnostics = args.Contains("--inspect-gsi") ? new GsiFieldDiagnostics() : null;
+long diagnosticSavedAt = 0;
 var gate = new SemaphoreSlim(1, 1);
 var jsonOptions = new JsonSerializerOptions { WriteIndented = false };
 await Save(reducer.Current);
@@ -93,6 +95,15 @@ app.MapPost("/gsi", async context => {
             context.Response.StatusCode = 403; return;
         }
         if (!reducer.Accept(doc.RootElement, now)) { context.Response.StatusCode = 422; return; }
+        if(fieldDiagnostics != null) {
+            fieldDiagnostics.Observe(doc.RootElement,now);
+            if(now-diagnosticSavedAt>=1000) {
+                try {
+                    await SharedFile.WriteTextAsync(Path.Combine(stateDir,"gsi-fields.json"),JsonSerializer.Serialize(fieldDiagnostics,jsonOptions));
+                    diagnosticSavedAt=now;
+                } catch(Exception e) when(e is IOException or UnauthorizedAccessException) { }
+            }
+        }
         await Save(reducer.Current);
         context.Response.StatusCode = 204;
     } catch (JsonException) { context.Response.StatusCode = 400; }

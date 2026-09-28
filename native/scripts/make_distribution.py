@@ -22,6 +22,7 @@ for name in [package.name,'ReticleLab.Local.cer','signing-info.json']:shutil.cop
 dep=out/'Dependencies/x64/Microsoft.VCLibs.x64.14.00.appx';dep.parent.mkdir(parents=True);shutil.copy2(args.dependency,dep)
 scripts=['Install-ReticleLab.cmd','install-dev.ps1','Diagnose-ReticleLab.cmd','Setup-GSI.cmd','Setup-GSI.ps1','SteamPaths.ps1','Update-GSI-Latency.cmd','Update-GSI-Latency.ps1']
 for name in scripts:shutil.copy2(native/'scripts'/name,out/name)
+shutil.copy2(root/'docs'/f'RELEASE-{short}.md',out/'CHANGES.md')
 assert package.name in (out/'install-dev.ps1').read_text(encoding='utf-8-sig'),'Update the installer pins before bundling'
 for source,dest in [('LICENSE','LICENSE'),('docs/INSTALL.md','INSTALL.md'),('docs/ANTI-CHEAT-REVIEW.md','ANTI-CHEAT-REVIEW.md'),('SECURITY.md','SECURITY.md'),('native/THIRD-PARTY.md','THIRD-PARTY.md'),('native/Widget/Fonts/OFL.txt','LICENSES/OFL.txt'),('native/Widget/Fonts/FONT-NOTICES.txt','LICENSES/FONT-NOTICES.txt')]:shutil.copy2(root/source,out/dest)
 (out/'START-HERE.txt').write_text('Reticle Lab '+short+''' / Windows x64

@@ -13,6 +13,14 @@ public sealed class KillNotice
     // Label describes the scope; an update delta is never target/weapon damage.
     public int? Damage { get; set; }
     public string DamageLabel { get; set; } = "未知伤害";
+    // Final ordinal for an aggregate; FeedbackCursor assigns each kill its own ordinal.
+    public int? Streak { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string CounterText => Damage.HasValue ? Damage.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : Streak > 0 ? Ordinal(Streak.Value) : "—";
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string CounterLabel => Damage.HasValue ? DamageLabel : "连杀";
+    public static string Ordinal(int number) => number.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+        (number % 100 is 11 or 12 or 13 ? "TH" : (number % 10) switch { 1=>"ST",2=>"ND",3=>"RD",_=>"TH" });
 }
 
 public sealed class RoundSummary
@@ -60,6 +68,8 @@ public sealed class GsiReducer
     private string? identity, roundKey;
     private int? priorKills, priorHeadshots, baselineMoney, lastDamage;
     private int? priorMatchKills;
+    private int? priorDeaths, priorHealth;
+    private int lifeKills;
     private int recordedDamage;
     private long lastTimestamp, sequence;
     private bool canCompare;
@@ -83,6 +93,7 @@ public sealed class GsiReducer
             baselineMoney = null;
             lastDamage = null;
             roundCandidate = completedRound = null;
+            lifeKills=0;priorDeaths=priorHealth=null;
             return true;
         }
         var map = Obj(root, "map");
@@ -150,6 +161,17 @@ public sealed class GsiReducer
         int delta = continuous && matchKills.HasValue && priorMatchKills.HasValue
             ? Math.Max(0, matchKills.Value - priorMatchKills.Value)
             : !reset && kills.HasValue && priorKills.HasValue ? Math.Max(0, kills.Value - priorKills.Value) : 0;
+        int? deaths=Num(stats,"deaths"), health=Num(state,"health");
+        bool deathAdvanced=(deaths>priorDeaths)==true;
+        bool died=deathAdvanced || health==0 && priorHealth!=0;
+        // The final match-kill delta may arrive together with, or after, the
+        // round-number advance and cleared round counters. Preserve its ordinal
+        // throughout over/freeze; the next live phase starts the new streak.
+        bool closingRound = Current.Phase is "live" or "over" or "freezetime" && phase is "over" or "freezetime";
+        bool beganLive = phase == "live" && Current.Phase is "over" or "freezetime";
+        // A death-count increase while alive means a death/respawn was missed.
+        if(!continuous || (!closingRound && (changedRound || beganLive || (kills<priorKills)==true)) ||
+            (deathAdvanced && health!=0))lifeKills=0;
         // Retain the final kill across a round boundary until each widget has polled it.
         var events = continuous ? Current.Events.Where(e => now - e.At < 10000).ToList() : new List<KillNotice>();
         if (delta > 0)
@@ -157,10 +179,16 @@ public sealed class GsiReducer
             int count = delta;
             int headCount = !reset && hs.HasValue && priorHeadshots.HasValue && kills - priorKills == count
                 ? Math.Clamp(hs.Value - priorHeadshots.Value, 0, count) : 0;
-            if (count <= 10) events.Add(new KillNotice { Id = ++sequence, At = now, Count = count, Headshots = headCount, Weapon = weapon,
+            if (count <= 10) {
+                lifeKills=(int)Math.Min(int.MaxValue,(long)lifeKills+count);
+                events.Add(new KillNotice { Id = ++sequence, At = now, Count = count, Headshots = headCount, Weapon = weapon, Streak=lifeKills,
                 Damage=updateDamage,DamageLabel=updateDamage.HasValue ? "更新增量" :
                     !damage.HasValue ? damageStatus=="invalid_value"?"伤害字段无效":"GSI 未提供伤害" : reset ? "跨重置未知" : "缺少相邻基线" });
+            }
         }
+        // A final trade kill can be displayed with its old-life ordinal; future
+        // kills must not inherit that streak after death.
+        if(died || health==0)lifeKills=0;
         if (events.Count > 64) events.RemoveRange(0, events.Count - 64);
         Current = new Snapshot {
             Session = changedMatch ? Guid.NewGuid().ToString("N") : Current.Session, ReceivedAt = now, IsSelf = true, Status = "本人 GSI · 已连接",
@@ -184,6 +212,7 @@ public sealed class GsiReducer
             }
         }
         identity = nextIdentity; roundKey = key; priorKills = kills; priorHeadshots = hs; priorMatchKills = matchKills;
+        priorDeaths=deaths;priorHealth=health;
         lastTimestamp = timestamp; canCompare = true;
         return true;
     }

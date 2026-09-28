@@ -14,11 +14,12 @@ public sealed class FeedbackCursor
             return Array.Empty<KillNotice>();
         }
         var result = next.Events.Where(e => e.Id > sequence && now >= e.At && now - e.At <= 3000)
-            .OrderBy(e => e.Id).SelectMany(e => Enumerable.Range(0,Math.Clamp(e.Count,1,64)).Select(_ => new KillNotice {
+            .OrderBy(e => e.Id).SelectMany(e => Enumerable.Range(0,Math.Clamp(e.Count,1,64)).Select(index => new KillNotice {
                 Id=e.Id, At=now, Count=1,
                 // A mixed aggregate cannot attribute a headshot to a particular kill.
                 Headshots=e.Headshots==e.Count?1:0,
                 Weapon=e.Weapon, WeaponSource=e.WeaponSource,
+                Streak=e.Streak>=e.Count ? e.Streak-e.Count+index+1 : null,
                 // Each split notice carries the same update-level total, not a share per target.
                 Damage=e.Count==1||e.DamageLabel=="更新增量"?e.Damage:null,DamageLabel=e.DamageLabel
             })).ToArray();

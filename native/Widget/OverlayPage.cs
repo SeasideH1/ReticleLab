@@ -22,6 +22,9 @@ sealed partial class OverlayPage : Page
     readonly CoreDispatcher viewDispatcher;
     // Canvas does not let the unscaled child's desired size enlarge the viewport.
     readonly Canvas surface = new();
+    readonly Grid root = new();
+    CoreCursor? savedCursor;
+    bool cursorHidden;
     double contentScale = 1;
     double layoutWidth=double.NaN,layoutHeight=double.NaN;
     Preferences? layoutPreferences;
@@ -42,7 +45,7 @@ sealed partial class OverlayPage : Page
     readonly List<CrosshairEffect> effects = new();
     readonly List<KillNotice> feeds = new();
     readonly Dictionary<KillNotice, Visuals.FeedVisual> feedVisuals = new();
-    readonly KillNotice feedPreview = new() {Weapon="AK-47",WeaponSource="布局预览",Count=1};
+    readonly KillNotice feedPreview = new() {Weapon="AK-47",WeaponSource="布局预览",Count=1,Streak=2};
     Preferences p = Store.Load(); Snapshot snapshot = new();
     DisplayInformation? display;
     Tile? selected, dragging;
@@ -66,7 +69,7 @@ sealed partial class OverlayPage : Page
         animation.Interval=FramePacer.Interval(p.TargetFps);
         HorizontalContentAlignment=HorizontalAlignment.Stretch; VerticalContentAlignment=VerticalAlignment.Stretch;
         App.Views[viewId] = new WeakReference<OverlayPage>(this);
-        var root = new Grid(); surface.Children.Add(canvas); root.Children.Add(surface);
+        surface.Children.Add(canvas); root.Children.Add(surface);
         // Keep a long toolbar from enlarging the centered content's layout width.
         var toolbar = new ScrollViewer { Content=tools, VerticalAlignment=VerticalAlignment.Top,
             HorizontalScrollMode=ScrollMode.Enabled, HorizontalScrollBarVisibility=ScrollBarVisibility.Hidden,
@@ -91,9 +94,13 @@ sealed partial class OverlayPage : Page
     async Task LoadedPage(object sender, RoutedEventArgs args)
     {
         if (disposed) return;
+        // Apply only to this app view; Game Bar/Windows still own capture policy.
+        try { Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().IsScreenCaptureEnabled=true; }
+        catch(Exception e) { Store.Log(e); }
         display = DisplayInformation.GetForCurrentView(); display.DpiChanged += DpiChanged;
         widget.SettingsClicked += SettingsClicked; widget.GameBarDisplayModeChanged += ModeChanged;
         widget.VisibleChanged += VisibilityChanged; widget.RequestedOpacityChanged += OpacityChanged;
+        widget.ClickThroughEnabledChanged += ModeChanged;
         widget.WindowBoundsChanged += WindowBoundsChanged;
         Window.Current.CoreWindow.Activated += Activated; Window.Current.CoreWindow.Closed += Closed;
         poll.Interval=TimeSpan.FromMilliseconds(widget.AppExtensionId is "Crosshair" or "Feed" ? 16 : widget.AppExtensionId=="Input" ? 33 : 100);
@@ -109,7 +116,7 @@ sealed partial class OverlayPage : Page
         } catch (Exception e) { Store.Log(e); status.Text = e.Message; }
         restoringWindow=false;
         if(!disposed)RememberWindowSize();
-        Draw();
+        ApplyPointerMode();Draw();
     }
     void Run(Func<Task> action) => _ = UiThread.Run(viewDispatcher, action, e => { if(!disposed)status.Text=e.Message; });
     void LayoutCanvas() {
@@ -150,8 +157,24 @@ sealed partial class OverlayPage : Page
     }
     void DpiChanged(DisplayInformation sender, object args) => Run(()=>{Draw();return Task.CompletedTask;});
     void SettingsClicked(XboxGameBarWidget sender, object args) => Run(async () => await sender.ActivateSettingsAsync());
-    void ModeChanged(XboxGameBarWidget sender, object args) => Run(() => { ClearInput(preserveBackground:true); Draw(); return Task.CompletedTask; });
+    void ModeChanged(XboxGameBarWidget sender, object args) => Run(async () => {
+        if(!IsForeground) {
+            bool save=dragging!=null;dragging=null;canvas.ReleasePointerCaptures();
+            if(save)await Save();
+        }
+        ApplyPointerMode();ClearInput(preserveBackground:true);Draw();
+    });
+    void ApplyPointerMode() {
+        // A transparent background still receives XAML pointer events. Pinned
+        // overlays must not focus themselves on a game click.
+        root.IsHitTestVisible=IsForeground;IsTabStop=IsForeground;
+        bool hide=widget.AppExtensionId=="Crosshair" && !IsForeground && widget.Visible && !suspended;
+        var window=Window.Current.CoreWindow;
+        if(hide&&!cursorHidden) {savedCursor=window.PointerCursor;window.PointerCursor=null;cursorHidden=true;}
+        else if(!hide&&cursorHidden) {window.PointerCursor=savedCursor;cursorHidden=false;savedCursor=null;}
+    }
     void VisibilityChanged(XboxGameBarWidget sender, object args) => Run(() => {
+        ApplyPointerMode();
         if (widget.Visible) { poll.Start(); ConfigureWatchers(); Draw(); } else { poll.Stop(); StopWatchers(); ClearInput(); StopAnimation(); effects.Clear(); feeds.Clear(); feedback.Reset(); }
         return Task.CompletedTask;
     });
@@ -163,19 +186,21 @@ sealed partial class OverlayPage : Page
     void UnloadedPage(object sender, RoutedEventArgs args) => Dispose();
     internal void Suspend() {
         if(disposed)return;
-        suspended=true;poll.Stop();StopWatchers();StopAnimation();effects.Clear();feeds.Clear();feedback.Reset();ClearInput();
+        suspended=true;ApplyPointerMode();poll.Stop();StopWatchers();StopAnimation();effects.Clear();feeds.Clear();feedback.Reset();ClearInput();
     }
     internal void Resume() {
         if(disposed || !suspended)return;
-        suspended=false;
+        suspended=false;ApplyPointerMode();
         if(widget.Visible) { poll.Start();ConfigureWatchers();Draw(); }
     }
     internal void Dispose() {
+        if(cursorHidden){Window.Current.CoreWindow.PointerCursor=savedCursor;cursorHidden=false;savedCursor=null;}
         if (disposed) return; disposed = true; poll.Stop(); poll.Tick -= Poll; StopAnimation(); animation.Tick-=Animate;StopWatchers();feedVisuals.Clear();tileVisuals.Clear();hitPool.Clear();
         App.Views.TryRemove(viewId, out _);
         if (display != null) display.DpiChanged -= DpiChanged;
         widget.SettingsClicked -= SettingsClicked; widget.GameBarDisplayModeChanged -= ModeChanged;
         widget.VisibleChanged -= VisibilityChanged; widget.RequestedOpacityChanged -= OpacityChanged;
+        widget.ClickThroughEnabledChanged -= ModeChanged;
         widget.WindowBoundsChanged -= WindowBoundsChanged;
         Window.Current.CoreWindow.Activated -= Activated; Window.Current.CoreWindow.Closed -= Closed;
     }
@@ -386,6 +411,7 @@ sealed partial class OverlayPage : Page
         } catch (Exception e) { Store.Log(e);status.Text="配置保存失败："+e.Message; }
     }
     void PointerDown(object sender, PointerRoutedEventArgs e) {
+        if(!IsForeground)return;
         Focus(FocusState.Pointer); var point = e.GetCurrentPoint(canvas);
         if (edit) {
             var node = e.OriginalSource as DependencyObject;

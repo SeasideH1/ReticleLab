@@ -71,7 +71,7 @@ sealed partial class SettingsPage : Page
         switch (page) {
             case 0: CrosshairSettings(); break;
             case 1:
-                Title("击杀反馈", "数字为相邻本人 GSI 更新的伤害增量，不是单次击杀或目标伤害。合并多杀的各条提示显示同一更新总量；无法计算时隐藏伤害区域，已确认未增加时显示 0。可在 GSI 页检查伤害数据。");
+                Title("击杀反馈", "有伤害数据时显示相邻 GSI 更新增量；无可靠伤害增量时显示本条命的连杀序号：1ST、2ND、3RD…，死亡或换回合后重置。同次更新多杀分别编号；有效伤害为 0 时仍显示 0。中途连接从之后观察到的击杀开始计数。");
                 ScaleSettings("Feed");
                 Color("矩形颜色",p.FeedColor,v=>p.FeedColor=v);
                 Number("宽度",p.FeedWidth,80,320,v=>p.FeedWidth=v); Number("高度",p.FeedHeight,24,64,v=>p.FeedHeight=v);
@@ -185,10 +185,10 @@ sealed partial class SettingsPage : Page
         async Task CheckDamage() {
             var current=await Store.ReadSnapshot();
             damageStatus.Text=current?.Fresh(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())!=true?"伤害数据：暂无新鲜的本人 GSI，请先连接游戏。":
-                current.RoundDamage.HasValue?"伤害数据：已收到回合伤害；相邻基线有效时显示更新增量。基线缺失、重连或重置时隐藏，真实零增量仍显示 0。":
+                current.RoundDamage.HasValue?"伤害数据：已收到回合伤害；相邻基线有效时显示更新增量。无法计算增量时显示连杀序号，真实零增量仍显示 0。":
                 current.DamageStatus=="missing_state"?"伤害数据：当前 GSI 缺少玩家状态，请确认游戏配置中 player_state 为 1，并重启 CS2。":
-                current.DamageStatus=="invalid_value"?"伤害数据：收到了伤害字段，但数值无效，已隐藏数字。不会把无效值当成 0。":
-                "伤害数据：GSI 当前未提供 round_totaldmg，无法可靠补算。击杀条已隐藏伤害区域，击杀与手持武器显示不受影响。";
+                current.DamageStatus=="invalid_value"?"伤害数据：收到了伤害字段，但数值无效；击杀提示改为显示连杀序号。":
+                "伤害数据：GSI 当前未提供 round_totaldmg；击杀提示显示连杀序号，伤害统计保持未知。";
         }
         Button(Row(),"检查伤害数据",CheckDamage);Run(CheckDamage);
         var files=Row();Button(files,"导出配置",Export);Button(files,"导入配置",Import);

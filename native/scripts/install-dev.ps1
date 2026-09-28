@@ -6,6 +6,7 @@ param(
     [switch]$ValidateOnly,
     [switch]$TrustOnly,
     [switch]$UpdateOnly,
+    [switch]$AllowCertificateRenewal,
     [switch]$AcceptComponentTerms
 )
 $ErrorActionPreference = 'Stop'
@@ -14,14 +15,14 @@ $ErrorActionPreference = 'Stop'
 $windowsModules = Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/Modules'
 $env:PSModulePath = $windowsModules + ';' + $env:PSModulePath
 if (!$PackageDirectory) {
-    if (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'ReticleLab-0.2.10-x64-dev-signed.msix')) { $PackageDirectory = $PSScriptRoot }
-    elseif ($UpdateOnly) { $PackageDirectory = Join-Path $PSScriptRoot '../artifacts/releases/ReticleLab-0.2.10-update-x64' }
-    else { $PackageDirectory = Join-Path $PSScriptRoot '../artifacts/releases/ReticleLab-0.2.10-windows-x64' }
+    if (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'ReticleLab-0.2.12-x64-dev-signed.msix')) { $PackageDirectory = $PSScriptRoot }
+    elseif ($UpdateOnly) { $PackageDirectory = Join-Path $PSScriptRoot '../artifacts/releases/ReticleLab-0.2.12-update-x64' }
+    else { $PackageDirectory = Join-Path $PSScriptRoot '../artifacts/releases/ReticleLab-0.2.12-windows-x64' }
 }
 $logStarted = $false
 $started = Get-Date
 $exitCode = 1
-$expectedThumbprint = 'D35B5432AB595D17B5ECEC6FB8342FDCE533E094'
+$expectedThumbprint = '15F24B4316D19A662750CC286ADEA0C724087581'
 
 function Read-PackageManifest([string]$Path) {
     $zip = [IO.Compression.ZipFile]::OpenRead($Path)
@@ -90,10 +91,10 @@ try {
     Write-Host "PowerShell: $($PSVersionTable.PSVersion); OS: $([Environment]::OSVersion.Version)"
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     Add-Type -AssemblyName System.Security
-    $package = Join-Path $PackageDirectory 'ReticleLab-0.2.10-x64-dev-signed.msix'
+    $package = Join-Path $PackageDirectory 'ReticleLab-0.2.12-x64-dev-signed.msix'
     $certificate = Join-Path $PackageDirectory 'ReticleLab.Local.cer'
     $dependency = Join-Path $PackageDirectory 'Dependencies/x64/Microsoft.VCLibs.x64.14.00.appx'
-    Assert-Hash $package '75DFB758F823724F1F38EE649F66F0FD7FC1E1C63487DF3F66D0DC5C5F06A624'
+    Assert-Hash $package '7CADEA0724C37EBE20CAC90DECA9656DFF76A1517B1FC4A2C7DE2F17E9D02B66'
     if (!$UpdateOnly) { Assert-Hash $dependency '9C17B521F9D690A1F504DA5108ED6EEC5669EB3A8FD1331EEF43E40D84E74283' }
     $cert = New-Object Security.Cryptography.X509Certificates.X509Certificate2($certificate)
     if ($cert.Thumbprint -ne $expectedThumbprint -or $cert.Subject -ne 'CN=ReticleLab.Local' -or $cert.HasPrivateKey) { throw 'Unexpected public certificate.' }
@@ -127,7 +128,7 @@ try {
     if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') { throw 'This development release targets Windows x64.' }
 
     if ($TrustOnly) {
-        if ($UpdateOnly) { throw 'An update-only package cannot import certificates.' }
+        if ($UpdateOnly -and !$AllowCertificateRenewal) { throw 'Certificate renewal must be explicitly enabled for an update.' }
         if ($CheckOnly) { throw 'TrustOnly cannot be combined with CheckOnly.' }
         $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
         if (!$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Certificate import requires elevation.' }
@@ -160,7 +161,8 @@ try {
     if ($installed | Where-Object { [version]$_.Version -gt [version]$manifest.Package.Identity.Version }) { throw '0x80073D06: A newer Reticle Lab version is already installed.' }
     if ($UpdateOnly) {
         if (!@($installed | Where-Object { $_.Publisher -eq $cert.Subject -and [version]$_.Version -ge [version]'0.2.7.0' -and $_.Status -eq 'Ok' }).Count) { throw 'Update requires an existing working Reticle Lab 0.2.7 or newer installation for this account. Use a full installer on a new PC.' }
-        if (!(Test-TrustedCertificate) -or !$framework.Count) { throw 'Existing certificate trust or framework is missing. Repair with the full installer; this update makes no trust/dependency changes.' }
+        if (!$framework.Count) { throw 'Existing framework is missing. Repair with the full installer.' }
+        if (!(Test-TrustedCertificate) -and !$AllowCertificateRenewal) { throw 'The new certificate is not trusted. Run Update-ReticleLab.cmd to enable certificate renewal with a Windows administrator prompt.' }
     }
     if (!$UpdateOnly -and !$AcceptComponentTerms) {
         if (!(Confirm-ComponentTerms)) {
@@ -172,6 +174,7 @@ try {
         Write-Host 'Windows will request administrator approval to trust this development certificate. Installation then continues under the original account.'
         $powershell = Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'
         $arguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}" -PackageDirectory "{1}" -TrustOnly' -f $PSCommandPath, $PackageDirectory
+        if($UpdateOnly){$arguments += ' -UpdateOnly -AllowCertificateRenewal'}
         $child = Start-Process -FilePath $powershell -ArgumentList $arguments -Verb RunAs -WindowStyle Hidden -PassThru -Wait
         if ($child.ExitCode -ne 0 -or !(Test-TrustedCertificate)) { throw "Certificate import failed or was cancelled (exit $($child.ExitCode)). See install-logs." }
     }

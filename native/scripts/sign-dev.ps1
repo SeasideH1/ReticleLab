@@ -1,8 +1,11 @@
-param([Parameter(Mandatory=$true)][string]$Package, [string]$Jsign)
+param([Parameter(Mandatory=$true)][string]$Package, [string]$Jsign, [string]$KeyDirectory)
 $ErrorActionPreference = 'Stop'
 $nativeRoot = Split-Path $PSScriptRoot -Parent
 $inputPackage = (Resolve-Path -LiteralPath $Package).Path
-$keyDir = Join-Path $nativeRoot '.signing'
+$desktopKeyDir=Join-Path $nativeRoot '.signing/desktop-user'
+$keyDir = if($KeyDirectory){[IO.Path]::GetFullPath($KeyDirectory)}
+    elseif(Test-Path -LiteralPath (Join-Path $desktopKeyDir 'ReticleLab.Local.pfx')){$desktopKeyDir}
+    else{Join-Path $nativeRoot '.signing'}
 $pfxPath = Join-Path $keyDir 'ReticleLab.Local.pfx'
 $passwordPath = Join-Path $keyDir 'password.dpapi'
 $certificatePath = Join-Path $keyDir 'ReticleLab.Local.cer'
@@ -42,7 +45,11 @@ if (!(Test-Path -LiteralPath $pfxPath)) {
         } finally { $cert.Dispose() }
     } finally { $rsa.Dispose() }
 }
-$clearBytes = [Security.Cryptography.ProtectedData]::Unprotect([IO.File]::ReadAllBytes($passwordPath), $null, [Security.Cryptography.DataProtectionScope]::CurrentUser)
+try {
+    $clearBytes = [Security.Cryptography.ProtectedData]::Unprotect([IO.File]::ReadAllBytes($passwordPath), $null, [Security.Cryptography.DataProtectionScope]::CurrentUser)
+} catch {
+    throw 'The existing signing password cannot be decrypted by this Windows account. Use the original signing account, or explicitly create a separate signing identity and update certificate trust. The existing key files were preserved.'
+}
 $password = [Text.Encoding]::UTF8.GetString($clearBytes)
 [Array]::Clear($clearBytes, 0, $clearBytes.Length)
 $outDir = Join-Path ([IO.Path]::GetDirectoryName($inputPackage)) ('signed-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))

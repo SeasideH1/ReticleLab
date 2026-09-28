@@ -3,12 +3,17 @@ from pathlib import Path
 import os
 import subprocess
 import tempfile
+import argparse
 
 root = Path(__file__).resolve().parents[1]
-release = root / 'artifacts/releases/ReticleLab-0.2.10-windows-x64'
-script = root / 'scripts/install-dev.ps1'
+parser = argparse.ArgumentParser()
+parser.add_argument('--release', type=Path, default=root / 'artifacts/releases/ReticleLab-0.2.12-windows-x64')
+release = parser.parse_args().release.resolve()
+script = release / 'install-dev.ps1' # Use the installer pinned to the selected bundle.
 shell = Path(os.environ['WINDIR']) / 'System32/WindowsPowerShell/v1.0/powershell.exe'
-package_name = 'ReticleLab-0.2.10-x64-dev-signed.msix'
+packages = list(release.glob('ReticleLab-*-x64-dev-signed.msix'))
+assert len(packages) == 1, 'Expected exactly one signed package'
+package_name = packages[0].name
 
 def run(folder, expected, phrase):
     result = subprocess.run([str(shell), '-NoProfile', '-ExecutionPolicy', 'Bypass',

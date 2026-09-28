@@ -10,9 +10,9 @@ A Windows Xbox Game Bar overlay with pixel-aware crosshairs, independent kill fe
 
 ![Reticle Lab interface illustration](docs/preview.svg)
 
-**Windows x64 · Game Bar · C# / .NET 10 · MIT project code · Development release 0.2.10**
+**Windows x64 · Game Bar · C# / .NET 10 · MIT project code · Development release 0.2.11**
 
-[0.2.10 changes](docs/RELEASE-0.2.10.md): smoother mouse trails, reliable folder-launch requests, saved layouts and captured appearance defaults.
+[0.2.11 changes](docs/RELEASE-0.2.11.md): kill-streak ordinals when damage is unavailable and pinned crosshair cursor handling. [OBS capture](docs/OBS-CAPTURE.md).
 
 </div>
 
@@ -63,7 +63,7 @@ The receiver accepts authenticated GSI only on `127.0.0.1:29841`. It requires th
 | Headshot kill | Confirmed only when the available counters permit attribution. Mixed aggregate attribution stays unknown. |
 | Weapon | **Currently held** weapon fallback; not a claim about which weapon caused the kill. |
 | Damage number | Difference between consecutive valid `round_totaldmg` samples, labeled **更新增量**. Split rows from one update carry the same update total; do not sum those rows. |
-| Missing damage / reset / reconnect | The kill feedback damage area is hidden until a reliable delta is available. A valid unchanged counter gives **0**. |
+| Missing damage / reset / reconnect | Kill feedback shows life-streak ordinals when a reliable damage delta is unavailable. A valid unchanged counter gives **0**. |
 | Body/head hit, hit accuracy, per-victim damage | Not reliably available from the self GSI used here. Hit buttons are explicitly **demos**. |
 | Buy menu | Not detected. Optional dimming follows the entire freeze phase. |
 
@@ -102,7 +102,7 @@ For local signing and distribution, follow [the signing guide](native/DEVELOPMEN
 
 ## Validation and limits
 
-The source includes **132 core checks**, authenticated HTTP receiver tests, real mouse registration/lease and sharing-recovery checks, package integrity checks, installer negative tests and public-export scanning. See [validation](native/VALIDATION.md) for the actual executed scope.
+The source includes **148 core checks**, authenticated HTTP receiver tests, real mouse registration/lease and sharing-recovery checks, package integrity checks, installer negative tests and public-export scanning. See [validation](native/VALIDATION.md) for the actual executed scope.
 
 Game Bar appearance, in-game input, multi-monitor centering, long-session stability and actual frame rate require interactive validation.
 

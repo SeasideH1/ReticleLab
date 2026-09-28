@@ -98,20 +98,54 @@ static class Visuals
                 RenderTransform=transform, IsHitTestVisible=false };
         row = new Grid { Width = p.FeedWidth - 20, Height = p.FeedHeight, IsHitTestVisible = false };
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(38) });
-        row.ColumnDefinitions.Add(new ColumnDefinition()); row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition());
         var emblem=(FrameworkElement)Emblem();
         emblem.HorizontalAlignment=HorizontalAlignment.Left;emblem.VerticalAlignment=VerticalAlignment.Center;
         row.Children.Add(emblem);
-        var words = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-        words.Children.Add(Text(notice.Weapon, 16, "#FFFFFF", p)); words.Children.Add(Text(notice.WeaponSource, 9, "#FFFFFF", p));
-        Grid.SetColumn(words, 1); row.Children.Add(words);
-        var damagePanel=new StackPanel{Margin=new Thickness(8,0,0,0),VerticalAlignment=VerticalAlignment.Center,HorizontalAlignment=HorizontalAlignment.Right};
-        damagePanel.Visibility=notice.Damage.HasValue?Visibility.Visible:Visibility.Collapsed;
-        var damage = Text(notice.Damage?.ToString() ?? "—", 20, "#FFFFFF", p);
-        damage.HorizontalAlignment=HorizontalAlignment.Right;damagePanel.Children.Add(damage);
-        var label=Text(notice.DamageLabel,9,"#FFFFFF",p);label.HorizontalAlignment=HorizontalAlignment.Right;damagePanel.Children.Add(label);
-        Grid.SetColumn(damagePanel, 2); row.Children.Add(damagePanel);
-
+        // Shared rows align both primary baselines and both captions. Two
+        // independently centered stacks drift when the numeric font is larger.
+        var textLayout = new Grid { Width=Math.Max(1,p.FeedWidth-58) };
+        textLayout.ColumnDefinitions.Add(new ColumnDefinition());
+        textLayout.ColumnDefinitions.Add(new ColumnDefinition { Width=GridLength.Auto });
+        textLayout.RowDefinitions.Add(new RowDefinition { Height=GridLength.Auto });
+        textLayout.RowDefinitions.Add(new RowDefinition { Height=GridLength.Auto });
+        var weapon=Text(notice.Weapon,16,"#FFFFFF",p);
+        var source=Text(notice.WeaponSource,9,"#FFFFFF",p);
+        var counter=Text(notice.CounterText,20,"#FFFFFF",p);
+        var label=Text(notice.CounterLabel,9,"#FFFFFF",p);
+        bool showCounter=notice.Damage.HasValue||notice.Streak>0;
+        foreach(var text in new[]{weapon,source,counter,label}) {
+            text.MaxLines=1;text.TextWrapping=TextWrapping.NoWrap;
+            text.VerticalAlignment=VerticalAlignment.Top;
+            text.UseLayoutRounding=false;
+            textLayout.Children.Add(text);
+        }
+        foreach(var text in new[]{counter,label}) {
+            text.HorizontalAlignment=HorizontalAlignment.Right;
+            text.Margin=new Thickness(8,0,0,0);
+            text.MaxWidth=Math.Max(1,(textLayout.Width-8)/2);
+            text.Visibility=showCounter?Visibility.Visible:Visibility.Collapsed;
+            Grid.SetColumn(text,1);
+        }
+        Grid.SetRow(source,1);Grid.SetRow(label,1);
+        AlignFeedBaselines(weapon,counter,showCounter);
+        AlignFeedBaselines(source,label,showCounter);
+        // Keep the whole two-line group centered; short configured bars scale
+        // the group uniformly instead of clipping captions or shifting a column.
+        var textBox=new Viewbox { Child=textLayout, Stretch=Stretch.Uniform,
+            StretchDirection=StretchDirection.DownOnly, Height=Math.Max(1,p.FeedHeight-6),
+            VerticalAlignment=VerticalAlignment.Center, HorizontalAlignment=HorizontalAlignment.Stretch };
+        Grid.SetColumn(textBox,1);row.Children.Add(textBox);
+        }
+        static void AlignFeedBaselines(TextBlock left,TextBlock right,bool showRight) {
+            if(!showRight)return;
+            var unconstrained=new Windows.Foundation.Size(double.PositiveInfinity,double.PositiveInfinity);
+            left.Measure(unconstrained);right.Measure(unconstrained);
+            double a=left.BaselineOffset,b=right.BaselineOffset;
+            if(!double.IsFinite(a)||!double.IsFinite(b))return;
+            double baseline=Math.Max(a,b);
+            left.Margin=new Thickness(0,baseline-a,0,0);
+            right.Margin=new Thickness(8,baseline-b,0,0);
         }
         public void Draw(Canvas c, FrameBatch frame, Preferences p, double elapsed, double y) {
         double sx = 1, sy = 1, opacity = p.FeedOpacity;

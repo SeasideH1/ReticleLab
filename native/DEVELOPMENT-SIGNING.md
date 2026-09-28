@@ -9,6 +9,10 @@
 
 Use PowerShell 7/.NET 10 for signing. The default signer is the restored Windows SDK SignTool. An optional `-Jsign <jsign-7.5.jar>` path is hash-checked and requires Java. Jsign is a build tool and is not redistributed in the app or source.
 
+`-KeyDirectory <directory>` selects a separate key directory. If an existing desktop-user key is present under `native/.signing/desktop-user`, it is preferred by default. Run signing under the Windows account that created that key: DPAPI passwords cannot be decrypted merely by switching to another administrator account. Selecting a separate directory preserves the previous key files.
+
+The 0.2.11 updater can trust its pinned replacement certificate through an explicit `-AllowCertificateRenewal` option used by `Update-ReticleLab.cmd`. Package, signature and certificate checks precede the Windows elevation prompt; installation continues under the original user.
+
 On first signing, the script creates a local RSA development certificate under `native/.signing`. The PFX password is random and stored with current-Windows-user DPAPI protection. **Never commit/copy this directory to another computer or a public release.** A fork must make its own certificate and installer pins; it cannot reproduce this publisher's signature without the private key.
 
 The published `.cer` contains only the public certificate. Its subject/thumbprint and the MSIX/dependency hashes are pinned in `install-dev.ps1`. After producing a new release, update those pins and `installer_smoke.py` to the intended release before bundling. Do not disable hash/signature checks for convenience.
